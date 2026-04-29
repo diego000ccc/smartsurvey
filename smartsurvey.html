@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartSurvey</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f0f4ff; --surface: #ffffff; --surface-alt: #eef2ff;
+    --border: #d0d9f5; --border-strong: #a0b0e8;
+    --blue: #1a6bff; --blue-dark: #0047d6; --blue-light: #e6eeff; --blue-mid: #4d8fff;
+    --ink: #0d1530; --ink-muted: #5a6690; --ink-faint: #9aa3c2;
+    --green: #0f9d58; --red: #d93025; --radius: 10px;
+  }
+  body { font-family: Helvetica,'Helvetica Neue',Arial,sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { padding: 1.1rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+  .logo { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.03em; }
+  .logo span { color: var(--blue); }
+  .header-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); background: var(--blue-light); border: 1px solid var(--border); padding: 4px 12px; border-radius: 99px; }
+
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 620px; box-shadow: 0 4px 24px rgba(26,107,255,0.08); overflow: hidden; }
+
+  /* Setup */
+  #screen-setup { padding: 2.5rem 2.2rem; display: flex; flex-direction: column; gap: 1.2rem; }
+  .setup-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+  .setup-desc { font-size: 13.5px; color: var(--ink-muted); line-height: 1.65; }
+  .setup-steps { display: flex; flex-direction: column; gap: 10px; }
+  .setup-step { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; color: var(--ink-muted); line-height: 1.55; }
+  .step-num { width: 22px; height: 22px; background: var(--blue); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .setup-step a { color: var(--blue); text-decoration: none; font-weight: 600; }
+  .setup-step a:hover { text-decoration: underline; }
+  .setup-step code { background: var(--surface-alt); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-size: 12px; color: var(--ink); }
+  .setup-field { display: flex; flex-direction: column; gap: 5px; }
+  .setup-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); }
+  .setup-input { font-family: Helvetica,'Helvetica Neue',Arial,sans-serif; font-size: 13px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); color: var(--ink); background: var(--surface); width: 100%; transition: border-color 0.15s; }
+  .setup-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,107,255,0.1); }
+  .setup-input::placeholder { color: var(--ink-faint); }
+  .setup-input.error { border-color: var(--red); }
+  .setup-error { font-size: 12px; color: var(--red); display: none; padding: 9px 12px; background: #fff0f0; border-radius: 8px; border: 1px solid #ffb3b3; line-height: 1.5; }
+
+  /* Intro */
+  #screen-intro { padding: 2.5rem 2.2rem; display: none; flex-direction: column; gap: 1.4rem; }
+  .intro-icon { width: 46px; height: 46px; background: var(--blue-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .intro-title { font-size: 2rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.04em; }
+  .intro-title em { font-style: normal; color: var(--blue); }
+  .intro-desc { font-size: 14.5px; color: var(--ink-muted); line-height: 1.7; }
+  .intro-stats { display: flex; gap: 2rem; padding: 1.1rem 1.2rem; background: var(--surface-alt); border-radius: var(--radius); border: 1px solid var(--border); }
+  .stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .stat-num { font-size: 1.4rem; font-weight: 700; color: var(--blue); letter-spacing: -0.03em; }
+  .stat-label { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Progress */
+  .progress-wrap { padding: 1.4rem 2.2rem 0; }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .progress-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }
+  .progress-count { font-size: 12px; font-weight: 600; color: var(--blue); }
+  .progress-track { height: 4px; background: var(--surface-alt); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue-dark), var(--blue)); border-radius: 99px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Question */
+  .question-wrap { padding: 1.8rem 2.2rem 1.4rem; }
+  .question-category { font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 10px; }
+  .question-text { font-size: 1.25rem; font-weight: 700; line-height: 1.35; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.02em; }
+  .question-hint { font-size: 12.5px; color: var(--ink-faint); margin-bottom: 1.4rem; }
+  .options-list { display: flex; flex-direction: column; gap: 7px; }
+  .option-item { display: flex; align-items: center; gap: 12px; padding: 11px 15px; border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; user-select: none; background: var(--surface); }
+  .option-item:hover { border-color: var(--blue-mid); background: var(--blue-light); box-shadow: 0 0 0 3px rgba(26,107,255,0.08); }
+  .option-item.selected { border-color: var(--blue); background: var(--blue-light); box-shadow: 0 0 0 3px rgba(26,107,255,0.12); }
+  .option-radio { width: 18px; height: 18px; border: 1.5px solid var(--border-strong); border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: #fff; }
+  .option-item.selected .option-radio { background: var(--blue); border-color: var(--blue); }
+  .option-radio-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0; transition: opacity 0.15s; }
+  .option-item.selected .option-radio-dot { opacity: 1; }
+  .option-text { font-size: 14px; color: var(--ink); line-height: 1.4; }
+  .option-item.selected .option-text { font-weight: 600; color: var(--blue-dark); }
+
+  /* Nav */
+  .question-footer { padding: 1.1rem 2.2rem 1.6rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .btn { font-family: Helvetica,'Helvetica Neue',Arial,sans-serif; font-size: 13.5px; font-weight: 600; padding: 9px 20px; border-radius: var(--radius); cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; letter-spacing: -0.01em; }
+  .btn-ghost { background: transparent; color: var(--ink-muted); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--surface-alt); color: var(--ink); border-color: var(--border-strong); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .selection-hint { font-size: 12px; color: var(--ink-faint); }
+
+  /* Saving */
+  #screen-saving { padding: 3rem 2.2rem; display: none; flex-direction: column; align-items: center; gap: 1rem; text-align: center; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .saving-text { font-size: 14px; color: var(--ink-muted); }
+
+  /* Results */
+  #screen-results { padding: 2rem 2.2rem; display: none; max-height: 82vh; overflow-y: auto; }
+  .results-header { text-align: center; margin-bottom: 1.8rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .results-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); background: var(--blue-light); padding: 5px 14px; border-radius: 99px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .results-title { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .results-sub { font-size: 13px; color: var(--ink-muted); }
+  .results-total { font-size: 12px; font-weight: 700; color: var(--blue); margin-top: 4px; }
+  .legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 12px; color: var(--ink-muted); align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 14px; height: 10px; border-radius: 3px; }
+  .result-block { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+  .result-block:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .result-category { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 5px; }
+  .result-question { font-size: 1rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; color: var(--ink); letter-spacing: -0.01em; }
+  .result-user-answer { font-size: 12px; color: var(--ink-muted); margin-bottom: 14px; padding: 6px 10px; background: var(--blue-light); border-radius: 6px; border-left: 3px solid var(--blue); }
+  .result-user-answer strong { color: var(--blue-dark); font-weight: 600; }
+  .bar-row { display: flex; flex-direction: column; gap: 9px; }
+  .bar-item { display: grid; grid-template-columns: 1fr 44px; align-items: center; gap: 8px; }
+  .bar-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .bar-label { font-size: 12.5px; color: var(--ink); }
+  .bar-label.is-user { font-weight: 700; color: var(--blue-dark); }
+  .bar-track { height: 10px; background: var(--surface-alt); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; background: var(--blue-mid); border-radius: 99px; width: 0%; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .bar-fill.is-user { background: linear-gradient(90deg, var(--blue-dark), var(--blue)); }
+  .bar-pct { font-size: 12px; font-weight: 700; color: var(--ink-muted); text-align: right; }
+  .bar-pct.is-user { color: var(--blue); }
+  .results-actions { display: flex; justify-content: center; gap: 10px; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+
+  .fade-in { animation: fadeIn 0.25s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  footer { text-align: center; padding: 1.2rem; font-size: 11.5px; color: var(--ink-faint); border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Smart<span>Survey</span></div>
+  <div class="header-tag">Student Survey</div>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- SETUP -->
+    <div id="screen-setup">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="intro-icon">
+          <svg width="22" height="22" fill="none" stroke="#1a6bff" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="setup-title">Connect Firebase database</div>
+      </div>
+      <p class="setup-desc">To save real votes from everyone, SmartSurvey needs a free Firebase project. Follow these steps — it takes about 3 minutes:</p>
+
+      <div class="setup-steps">
+        <div class="setup-step"><div class="step-num">1</div><div>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> and sign in with Google</div></div>
+        <div class="setup-step"><div class="step-num">2</div><div>Click <strong>"Add project"</strong> → give it any name → disable Google Analytics → click <strong>"Create project"</strong></div></div>
+        <div class="setup-step"><div class="step-num">3</div><div>In the left menu click <strong>"Build"</strong> → <strong>"Realtime Database"</strong> → <strong>"Create database"</strong> → choose any location → select <strong>"Start in test mode"</strong> → click <strong>"Enable"</strong></div></div>
+        <div class="setup-step"><div class="step-num">4</div><div>Copy the database URL shown at the top — it looks like <code>https://your-project-default-rtdb.firebaseio.com</code></div></div>
+        <div class="setup-step"><div class="step-num">5</div><div>Paste it below and click <strong>Connect</strong></div></div>
+      </div>
+
+      <div class="setup-field">
+        <label class="setup-label">Firebase Database URL</label>
+        <input class="setup-input" id="db-url-input" type="text" placeholder="https://your-project-default-rtdb.firebaseio.com" autocomplete="off"/>
+      </div>
+      <div class="setup-error" id="setup-error"></div>
+      <button class="btn btn-primary" onclick="connectFirebase()" style="width:100%;padding:12px;font-size:14px;" id="connect-btn">Connect →</button>
+      <p style="font-size:11px;color:var(--ink-faint);text-align:center;">The URL is saved in your browser. Firebase free tier supports up to 100 simultaneous connections.</p>
+    </div>
+
+    <!-- INTRO -->
+    <div id="screen-intro">
+      <div class="intro-icon">
+        <svg width="22" height="22" fill="none" stroke="#1a6bff" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      </div>
+      <div class="intro-title">Welcome to<br><em>SmartSurvey</em></div>
+      <p class="intro-desc">A quick, fun survey about school life, daily habits, and your preferences. Your answers are anonymous and update real stats for everyone!</p>
+      <div class="intro-stats">
+        <div class="stat-item"><span class="stat-num">10</span><span class="stat-label">Questions</span></div>
+        <div class="stat-item"><span class="stat-num">~3'</span><span class="stat-label">Duration</span></div>
+        <div class="stat-item"><span class="stat-num" id="total-respondents">—</span><span class="stat-label">Respondents</span></div>
+      </div>
+      <button class="btn btn-primary" onclick="startSurvey()" style="width:100%;padding:13px;font-size:15px;margin-top:4px;">Start the survey →</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="screen-quiz" style="display:none;">
+      <div class="progress-wrap">
+        <div class="progress-top">
+          <span class="progress-label">Progress</span>
+          <span class="progress-count" id="prog-count">1 / 10</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:10%"></div></div>
+      </div>
+      <div class="question-wrap" id="question-wrap"></div>
+      <div class="question-footer">
+        <span class="selection-hint" id="sel-hint">Pick one answer</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" id="btn-prev" onclick="prevQuestion()" style="display:none;">← Back</button>
+          <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAVING -->
+    <div id="screen-saving">
+      <div class="spinner"></div>
+      <p class="saving-text">Saving your answers…</p>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="screen-results"></div>
+
+  </div>
+</main>
+
+<footer>SmartSurvey · School project · All data is anonymous</footer>
+
+<script>
+// ── Questions ──────────────────────────────────────────────
+const questions = [
+  {
+    category: "🏫 School Life",
+    text: "Your teacher cancels the test last minute. Your reaction?",
+    options: ["Internal happy dance immediately", "Pretend to be calm but scream inside", "Ask if it's rescheduled (overachiever alert)", "Already forgot there was a test"]
+  },
+  {
+    category: "🏫 School Life",
+    text: "Which type of homework do you secretly enjoy?",
+    options: ["Creative writing — I get to be dramatic", "Research — Wikipedia rabbit holes are fun", "Math problems — satisfying when it clicks", "Group projects — talking counts as working, right?"]
+  },
+  {
+    category: "🏫 School Life",
+    text: "How do you survive a boring lecture?",
+    options: ["Doodle masterpieces in the margins", "Fake-write notes while daydreaming", "Ask questions to seem awake", "Stare at the clock and will it to move faster"]
+  },
+  {
+    category: "🏫 School Life",
+    text: "What's your honest relationship with deadlines?",
+    options: ["Done 3 days early, already anxious", "Done the night before, thriving", "Done at 11:59 PM, heart pounding", "What deadline? Oh. That deadline."]
+  },
+  {
+    category: "⏰ Daily Habits",
+    text: "Your alarm goes off. What actually happens?",
+    options: ["Up immediately — it's go time", "Snooze once, just five more minutes", "Snooze five times, full negotiation mode", "I wake up naturally (suspicious)"]
+  },
+  {
+    category: "⏰ Daily Habits",
+    text: "What does your school lunch actually look like?",
+    options: ["Packed from home like a responsible adult", "Cafeteria mystery meal, no questions asked", "Vending machine and vibes", "I forget to eat and regret it at 3pm"]
+  },
+  {
+    category: "⏰ Daily Habits",
+    text: "When do you actually start studying for a test?",
+    options: ["A week before — colour-coded plan ready", "2–3 days before — reasonable and proud", "The night before — classic and reliable", "The morning of — living on the edge"]
+  },
+  {
+    category: "⏰ Daily Habits",
+    text: "What's the last thing you do before sleeping?",
+    options: ["Scroll my phone until my eyes give up", "Read a book like a Victorian scholar", "Replay every awkward moment from 2019", "Fall asleep instantly — no thoughts, head empty"]
+  },
+  {
+    category: "🎯 Preferences",
+    text: "If school were a TV show, it would be:",
+    options: ["A drama — too much going on daily", "A comedy — the chaos is actually hilarious", "A survival show — every day is a challenge", "A slow-burn documentary — educational but dry"]
+  },
+  {
+    category: "🎯 Preferences",
+    text: "Pick your ideal Friday afternoon:",
+    options: ["Out with friends, no plans, full chaos", "Home alone, snacks, binge-watching something", "Sport or outdoor activity", "Something creative — music, art, writing"]
+  }
+];
+
+// ── State ──────────────────────────────────────────────────
+let DB_URL = '';
+let currentQ = 0;
+let answers = Array(questions.length).fill(null);
+let globalData = null;
+
+// ── Firebase REST helpers ──────────────────────────────────
+// Firebase Realtime Database has a simple REST API — no SDK needed!
+// GET  https://<db>.firebaseio.com/path.json  → read
+// PUT  https://<db>.firebaseio.com/path.json  → write
+// POST https://<db>.firebaseio.com/path.json  → push
+
+function dbURL(path) {
+  return DB_URL.replace(/\/$/, '') + '/' + path + '.json';
+}
+
+async function dbRead(path) {
+  const res = await fetch(dbURL(path));
+  if (!res.ok) throw new Error('Read failed: ' + res.status);
+  return await res.json(); // returns null if path doesn't exist
+}
+
+async function dbWrite(path, data) {
+  const res = await fetch(dbURL(path), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Write failed: ' + res.status);
+  return await res.json();
+}
+
+async function dbTransaction(path, updateFn) {
+  // Read → modify → write (simple optimistic update)
+  const current = await dbRead(path);
+  const updated = updateFn(current);
+  await dbWrite(path, updated);
+  return updated;
+}
+
+function buildInitialData() {
+  const data = { totalRespondents: 0, questions: [] };
+  questions.forEach(q => {
+    const votes = {};
+    q.options.forEach(o => { votes[o] = 0; });
+    data.questions.push({ votes });
+  });
+  return data;
+}
+
+// ── Setup ──────────────────────────────────────────────────
+async function connectFirebase() {
+  const url = document.getElementById('db-url-input').value.trim().replace(/\/$/, '');
+  const errEl = document.getElementById('setup-error');
+  const btn = document.getElementById('connect-btn');
+  errEl.style.display = 'none';
+
+  if (!url.startsWith('https://') || !url.includes('firebaseio.com')) {
+    errEl.textContent = '⚠️ The URL must start with https:// and contain firebaseio.com — copy it directly from Firebase console.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  DB_URL = url;
+  btn.textContent = 'Connecting…';
+  btn.disabled = true;
+
+  try {
+    let data = await dbRead('survey');
+
+    if (!data || !data.questions || data.questions.length !== questions.length) {
+      // First time — initialize the database
+      data = buildInitialData();
+      await dbWrite('survey', data);
+    }
+
+    globalData = data;
+    localStorage.setItem('ss_db_url', DB_URL);
+    showIntro();
+
+  } catch (e) {
+    errEl.textContent = '❌ ' + e.message + ' — make sure the database is in Test Mode and the URL is correct.';
+    errEl.style.display = 'block';
+    btn.textContent = 'Connect →';
+    btn.disabled = false;
+  }
+}
+
+function showIntro() {
+  document.getElementById('screen-setup').style.display = 'none';
+  const intro = document.getElementById('screen-intro');
+  intro.style.display = 'flex';
+  intro.style.flexDirection = 'column';
+  document.getElementById('total-respondents').textContent = globalData.totalRespondents || 0;
+}
+
+// ── Survey ─────────────────────────────────────────────────
+function startSurvey() {
+  document.getElementById('screen-intro').style.display = 'none';
+  document.getElementById('screen-quiz').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const pct = Math.round(((currentQ + 1) / questions.length) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-count').textContent = (currentQ + 1) + ' / ' + questions.length;
+  document.getElementById('btn-prev').style.display = currentQ > 0 ? 'inline-block' : 'none';
+  document.getElementById('btn-next').textContent = currentQ === questions.length - 1 ? 'Finish ✓' : 'Next →';
+
+  const selected = answers[currentQ];
+  document.getElementById('question-wrap').innerHTML = `
+    <div class="question-category fade-in">${q.category}</div>
+    <div class="question-text fade-in">${q.text}</div>
+    <p class="question-hint fade-in">Choose one answer</p>
+    <div class="options-list fade-in">
+      ${q.options.map((opt, i) => `
+        <div class="option-item${selected === i ? ' selected' : ''}" onclick="selectOption(${i})" data-idx="${i}">
+          <div class="option-radio"><div class="option-radio-dot"></div></div>
+          <span class="option-text">${opt}</span>
+        </div>
+      `).join('')}
+    </div>`;
+  updateNextBtn();
+}
+
+function selectOption(idx) {
+  answers[currentQ] = idx;
+  document.querySelectorAll('.option-item').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.idx) === idx);
+  });
+  updateNextBtn();
+}
+
+function updateNextBtn() {
+  const has = answers[currentQ] !== null;
+  document.getElementById('btn-next').disabled = !has;
+  document.getElementById('sel-hint').textContent = has ? '✓ Answer selected' : 'Pick one answer';
+}
+
+function nextQuestion() {
+  if (currentQ < questions.length - 1) { currentQ++; renderQuestion(); }
+  else submitSurvey();
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+// ── Submit ─────────────────────────────────────────────────
+async function submitSurvey() {
+  document.getElementById('screen-quiz').style.display = 'none';
+  document.getElementById('screen-saving').style.display = 'flex';
+
+  try {
+    // Read fresh data to avoid overwriting other people's votes
+    const latest = await dbRead('survey') || buildInitialData();
+
+    latest.totalRespondents = (latest.totalRespondents || 0) + 1;
+
+    answers.forEach((optIdx, qi) => {
+      if (optIdx === null) return;
+      const key = questions[qi].options[optIdx];
+      if (!latest.questions[qi]) latest.questions[qi] = { votes: {} };
+      if (!latest.questions[qi].votes) latest.questions[qi].votes = {};
+      latest.questions[qi].votes[key] = (latest.questions[qi].votes[key] || 0) + 1;
+    });
+
+    await dbWrite('survey', latest);
+    globalData = latest;
+
+  } catch (e) {
+    console.warn('Save failed:', e.message);
+    // Still show results with local estimate
+  }
+
+  document.getElementById('screen-saving').style.display = 'none';
+  showResults();
+}
+
+// ── Results ────────────────────────────────────────────────
+function showResults() {
+  const resultsDiv = document.getElementById('screen-results');
+  resultsDiv.style.display = 'block';
+
+  const totalRespondents = globalData ? globalData.totalRespondents : 1;
+
+  let html = `
+    <div class="results-header">
+      <div class="results-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Survey complete
+      </div>
+      <div class="results-title">Live Results</div>
+      <p class="results-sub">Real answers from real students.</p>
+      <p class="results-total">${totalRespondents} respondent${totalRespondents !== 1 ? 's' : ''} so far</p>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(90deg,#0047d6,#1a6bff);"></div><span>Your answer</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4d8fff;"></div><span>Others</span></div>
+    </div>`;
+
+  questions.forEach((q, qi) => {
+    const userOptIdx = answers[qi];
+    const userOptLabel = userOptIdx !== null ? q.options[userOptIdx] : null;
+    const votesMap = (globalData && globalData.questions[qi] && globalData.questions[qi].votes) ? globalData.questions[qi].votes : {};
+    const totalVotes = Object.values(votesMap).reduce((a, b) => a + b, 0);
+
+    const bars = q.options.map(opt => {
+      const c = votesMap[opt] || 0;
+      const pct = totalVotes > 0 ? Math.round((c / totalVotes) * 100) : 0;
+      const isUser = opt === userOptLabel;
+      return `
+        <div style="margin-bottom:2px;">
+          <div class="bar-label-row">
+            <span class="bar-label${isUser ? ' is-user' : ''}">${isUser ? '▶ ' : ''}${opt}</span>
+            <span class="bar-pct${isUser ? ' is-user' : ''}">${pct}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill${isUser ? ' is-user' : ''}" data-target="${pct}" style="width:0%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    html += `
+      <div class="result-block">
+        <div class="result-category">${q.category}</div>
+        <div class="result-question">${q.text}</div>
+        <div class="result-user-answer">Your answer: <strong>${userOptLabel || '—'}</strong></div>
+        <div class="bar-row">${bars}</div>
+      </div>`;
+  });
+
+  html += `
+    <div class="results-actions">
+      <button class="btn btn-ghost" onclick="restartSurvey()">← Take again</button>
+    </div>`;
+
+  resultsDiv.innerHTML = html;
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.bar-fill[data-target]').forEach((bar, i) => {
+      setTimeout(() => { bar.style.width = bar.getAttribute('data-target') + '%'; }, 80 + i * 30);
+    });
+  }));
+}
+
+function restartSurvey() {
+  currentQ = 0;
+  answers = Array(questions.length).fill(null);
+  document.getElementById('screen-results').style.display = 'none';
+  document.getElementById('screen-results').innerHTML = '';
+  document.getElementById('screen-intro').style.display = 'flex';
+  document.getElementById('screen-intro').style.flexDirection = 'column';
+  document.getElementById('total-respondents').textContent = globalData ? globalData.totalRespondents : '—';
+}
+
+// ── Auto-restore ───────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('ss_db_url');
+  if (saved) {
+    DB_URL = saved;
+    document.getElementById('db-url-input').value = saved;
+    document.getElementById('connect-btn').textContent = 'Reconnecting…';
+    document.getElementById('connect-btn').disabled = true;
+    dbRead('survey').then(data => {
+      if (data && data.questions && data.questions.length === questions.length) {
+        globalData = data;
+        showIntro();
+      } else {
+        document.getElementById('connect-btn').textContent = 'Connect →';
+        document.getElementById('connect-btn').disabled = false;
+      }
+    }).catch(() => {
+      document.getElementById('connect-btn').textContent = 'Connect →';
+      document.getElementById('connect-btn').disabled = false;
+    });
+  }
+});
+</script>
+</body>
+</html>
